@@ -90,6 +90,7 @@ import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 
 
 data class DashboardItem(
@@ -107,6 +108,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        Configuration.getInstance().load(
+            applicationContext,
+            getSharedPreferences("osmdroid", MODE_PRIVATE)
+        )
+        Configuration.getInstance().userAgentValue = packageName
 
         if (ActivityCompat.checkSelfPermission(
                 this,
@@ -291,7 +298,7 @@ fun MetroMapScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(Color.White)
             .pointerInput(Unit) {
 
                 detectTransformGestures { _, pan, zoom, _ ->
@@ -318,7 +325,7 @@ fun MetroMapScreen() {
     ) {
 
         Image(
-            painter = painterResource(id = R.drawable.metromap),
+            painter = painterResource(id = R.drawable.mapview),
             contentDescription = "Delhi Metro Map",
             modifier = Modifier
                 .fillMaxSize()
@@ -523,6 +530,8 @@ fun NearestStationScreen() {
             factory = { ctx ->
 
                 val mapView = MapView(ctx)
+
+                mapView.setTileSource(TileSourceFactory.MAPNIK)
 
                 mapView.setMultiTouchControls(true)
 
