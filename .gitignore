@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Maven backend build artifacts
+dmrc-helper-backend/target/
+dmrc-helper-backend/*.db
