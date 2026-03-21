@@ -18,6 +18,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -27,17 +28,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Subway
 import androidx.compose.material.icons.filled.Train
 import androidx.compose.material3.Card
@@ -45,6 +50,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -66,6 +73,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -102,6 +110,16 @@ data class MetroStation(
     val name: String,
     val lat: Double,
     val lon: Double
+)
+
+data class ParkingStation(
+    val id: Int,
+    val line: String,
+    val station: String,
+    val contractor: String,
+    val contact: String,
+    val additionalContacts: String,
+    val note: String
 )
 
 class MainActivity : ComponentActivity() {
@@ -743,9 +761,233 @@ fun TicketOptionCard(
 
 
 
+fun loadParkingStations(context: Context): List<ParkingStation> {
+    return try {
+        val jsonString = context.assets
+            .open("delhi_metro_parking_clean.json")
+            .bufferedReader()
+            .use { it.readText() }
+        val jsonArray = JSONArray(jsonString)
+        val stations = mutableListOf<ParkingStation>()
+        for (i in 0 until jsonArray.length()) {
+            val obj = jsonArray.getJSONObject(i)
+            stations.add(
+                ParkingStation(
+                    id = obj.getInt("id"),
+                    line = obj.getString("line"),
+                    station = obj.getString("station"),
+                    contractor = obj.getString("contractor"),
+                    contact = obj.getString("contact"),
+                    additionalContacts = obj.optString("additional_contacts", ""),
+                    note = obj.optString("note", "")
+                )
+            )
+        }
+        stations
+    } catch (e: Exception) {
+        emptyList()
+    }
+}
+
+fun lineColor(line: String): Color = when {
+    line.contains("Red", ignoreCase = true) -> Color(0xFFD32F2F)
+    line.contains("Yellow", ignoreCase = true) -> Color(0xFFF9A825)
+    line.contains("Blue", ignoreCase = true) -> Color(0xFF1565C0)
+    line.contains("Green", ignoreCase = true) -> Color(0xFF2E7D32)
+    line.contains("Violet", ignoreCase = true) -> Color(0xFF6A1B9A)
+    line.contains("Pink", ignoreCase = true) -> Color(0xFFAD1457)
+    line.contains("Magenta", ignoreCase = true) -> Color(0xFF880E4F)
+    line.contains("Grey", ignoreCase = true) -> Color(0xFF546E7A)
+    line.contains("Aqua", ignoreCase = true) -> Color(0xFF00838F)
+    line.contains("Orange", ignoreCase = true) -> Color(0xFFE65100)
+    else -> Color(0xFFD32F2F)
+}
+
 @Composable
 fun AvailableParkingsScreen() {
-    CenteredText("Available Parkings Screen 🅿️")
+    val context = LocalContext.current
+    var allStations by remember { mutableStateOf<List<ParkingStation>>(emptyList()) }
+    var query by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        allStations = withContext(Dispatchers.IO) { loadParkingStations(context) }
+    }
+
+    val filtered = remember(query, allStations) {
+        if (query.isBlank()) allStations
+        else allStations.filter {
+            it.station.contains(query, ignoreCase = true) ||
+                it.line.contains(query, ignoreCase = true)
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            placeholder = { Text("Search by station or line…") },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Filled.Search,
+                    contentDescription = "Search",
+                    tint = Color(0xFFD32F2F)
+                )
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFFD32F2F),
+                cursorColor = Color(0xFFD32F2F)
+            )
+        )
+
+        if (filtered.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Filled.LocalParking,
+                        contentDescription = null,
+                        tint = Color(0xFFD32F2F).copy(alpha = 0.4f),
+                        modifier = Modifier.size(72.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Not Available",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFD32F2F)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "No parking contractor found for\n\"$query\"",
+                        fontSize = 14.sp,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 16.dp, end = 16.dp, bottom = 16.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(filtered) { station ->
+                    ParkingStationCard(station = station)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ParkingStationCard(station: ParkingStation) {
+    val context = LocalContext.current
+    val accentColor = lineColor(station.line)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Colored header bar with line name
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(accentColor, RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.Subway,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = station.line,
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            // Card body
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    text = station.station,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF212121)
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = station.contractor,
+                    fontSize = 14.sp,
+                    color = Color(0xFF555555)
+                )
+                if (station.note.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = station.note,
+                        fontSize = 12.sp,
+                        color = Color(0xFF888888)
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                // Contact row
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.Call,
+                        contentDescription = "Call",
+                        tint = accentColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = station.contact,
+                        fontSize = 14.sp,
+                        color = accentColor,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.clickable {
+                            val intent = Intent(Intent.ACTION_DIAL).apply {
+                                data = Uri.parse("tel:${station.contact}")
+                            }
+                            context.startActivity(intent)
+                        }
+                    )
+                    if (station.additionalContacts.isNotBlank()) {
+                        Text(
+                            text = "  |  ${station.additionalContacts}",
+                            fontSize = 14.sp,
+                            color = accentColor,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.clickable {
+                                val intent = Intent(Intent.ACTION_DIAL).apply {
+                                    data = Uri.parse("tel:${station.additionalContacts}")
+                                }
+                                context.startActivity(intent)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
