@@ -2,6 +2,7 @@ package com.example.metrohelper
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -86,6 +87,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.metrohelper.ui.theme.MetroHelperTheme
+import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.LocationServices
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -99,7 +101,7 @@ import org.osmdroid.views.overlay.Polyline
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-
+import com.google.android.gms.location.*
 
 data class DashboardItem(
     val title: String,
@@ -475,12 +477,39 @@ suspend fun getRoute(
     }
 }
 
+fun checkLocationEnabled(activity: Activity, onEnabled: () -> Unit) {
+
+    val locationRequest = LocationRequest.Builder(
+        Priority.PRIORITY_HIGH_ACCURACY, 1000
+    ).build()
+
+    val builder = LocationSettingsRequest.Builder()
+        .addLocationRequest(locationRequest)
+
+    val client = LocationServices.getSettingsClient(activity)
+
+    val task = client.checkLocationSettings(builder.build())
+
+    task.addOnSuccessListener {
+        onEnabled()
+    }
+
+    task.addOnFailureListener { exception ->
+
+        if (exception is ResolvableApiException) {
+            try {
+                exception.startResolutionForResult(activity, 200)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+}
 @SuppressLint("MissingPermission")
 @Composable
 fun NearestStationScreen() {
-
     val context = LocalContext.current
-
+    val activity = context as Activity
     var userLocation by remember { mutableStateOf<GeoPoint?>(null) }
     var nearestStation by remember { mutableStateOf<MetroStation?>(null) }
     var routePoints by remember { mutableStateOf<List<GeoPoint>>(emptyList()) }
@@ -493,26 +522,25 @@ fun NearestStationScreen() {
     //---- GET USER LOCATION
     LaunchedEffect(Unit) {
 
-        fusedLocationClient.getCurrentLocation(
-            com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
-            null
-        ).addOnSuccessListener { location ->
+        checkLocationEnabled(activity) {
+
+            fusedLocationClient.getCurrentLocation(
+                Priority.PRIORITY_HIGH_ACCURACY,
+                null
+            ).addOnSuccessListener { location ->
 
                 location?.let {
 
-                    userLocation = GeoPoint(
-                        it.latitude,
-                        it.longitude
-                    )
+                    userLocation = GeoPoint(it.latitude, it.longitude)
 
-                    nearestStation =
-                        findNearestStation(
-                            it.latitude,
-                            it.longitude,
-                            stations
-                        )
+                    nearestStation = findNearestStation(
+                        it.latitude,
+                        it.longitude,
+                        stations
+                    )
                 }
             }
+        }
     }
 
     //----- GET ROUTE AFTER LOCATION + STATION ARE KNOWN
