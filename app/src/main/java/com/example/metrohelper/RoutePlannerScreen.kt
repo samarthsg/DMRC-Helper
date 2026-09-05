@@ -1,5 +1,8 @@
 package com.example.metrohelper
 
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import android.annotation.SuppressLint
 import android.webkit.*
 import androidx.activity.compose.BackHandler
@@ -25,7 +28,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -45,6 +48,7 @@ fun StationAutoComplete(
 ) {
 
     var expanded by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
 
     val filtered = remember(value) {
         stations.filter {
@@ -61,6 +65,23 @@ fun StationAutoComplete(
                 expanded = true
             },
             label = { Text(label) },
+
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Done
+            ),
+
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    val selectedStation = filtered.firstOrNull()
+
+                    if (selectedStation != null) {
+                        onValueChange(selectedStation)
+                        expanded = false
+                        focusManager.clearFocus()
+                    }
+                }
+            ),
+
             modifier = Modifier
                 .fillMaxWidth()
                 .onFocusChanged { focusState ->
@@ -68,6 +89,7 @@ fun StationAutoComplete(
                         expanded = false
                     }
                 },
+
             singleLine = true
         )
 
@@ -295,7 +317,7 @@ fun RoutePlannerScreen() {
                     .padding(16.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back"
                 )
             }
