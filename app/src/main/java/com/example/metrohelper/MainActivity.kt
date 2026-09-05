@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.DirectionsTransit//new
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Subway
 import androidx.compose.material.icons.filled.Train
@@ -165,6 +166,7 @@ fun MetroApp() {
     val items = listOf(
         BottomNavItem("metromap", "Metro Map", Icons.Default.Map),
         BottomNavItem("neareststation", "Nearby", Icons.Default.LocationOn), // ✅ NEW
+        BottomNavItem("routeplanner", "Route", Icons.Default.DirectionsTransit),//NEW
         BottomNavItem("booktickets", "Tickets", Icons.Default.ConfirmationNumber),
         BottomNavItem("availableparkings", "Parkings", Icons.Default.LocalParking),
         BottomNavItem("aboutapp", "About App", Icons.Default.Info)
@@ -300,7 +302,7 @@ fun NavigationGraph(navController: NavHostController) {
         composable("metromap") { MetroMapScreen() }
 
         composable("neareststation") { NearestStationScreen() } // ✅ NEW
-
+        composable("routeplanner") { RoutePlannerScreen() }//NEW
         composable("booktickets") { BookTicketsScreen() }
         composable("availableparkings") { AvailableParkingsScreen() }
         composable("aboutapp") { AboutAppScreen() }
@@ -1095,3 +1097,4 @@ fun MetroAppPreview() {
         MetroApp()
     }
 }
+
