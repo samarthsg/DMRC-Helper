@@ -166,8 +166,8 @@ fun MetroApp() {
     val items = listOf(
         BottomNavItem("metromap", "Metro Map", Icons.Default.Map),
         BottomNavItem("neareststation", "Nearby", Icons.Default.LocationOn), // ✅ NEW
-        BottomNavItem("booktickets", "Tickets", Icons.Default.ConfirmationNumber),
         BottomNavItem("routeplanner", "Route", Icons.Default.DirectionsTransit),//NEW
+        BottomNavItem("booktickets", "Tickets", Icons.Default.ConfirmationNumber),
         BottomNavItem("availableparkings", "Parkings", Icons.Default.LocalParking),
         BottomNavItem("aboutapp", "About App", Icons.Default.Info)
     )
